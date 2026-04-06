@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>UBD Study Planner</title>
+  <link rel="stylesheet" href="style.css">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
+</head>
+
+<body>
+
+<h1>📚 UBD Study Planner</h1>
+
+<!-- 🔐 AUTH PAGE -->
+<div id="authSection" class="card">
+  <h2>Login / Sign Up</h2>
+  <input type="email" id="email" placeholder="Email">
+  <input type="password" id="password" placeholder="Password">
+  
+  <button onclick="signUp()">Sign Up</button>
+  <button onclick="login()">Login</button>
+</div>
+
+<!-- 🧩 MAIN APP (HIDDEN FIRST) -->
+<div id="appSection" class="container" style="display:none;">
+
+  <!-- PLANNER -->
+  <div class="card">
+    <h2>📅 Planner</h2>
+    <input type="text" id="title" placeholder="Task title">
+    <input type="date" id="date">
+    <button onclick="addTask()">Add Task</button>
+    <ul id="taskList"></ul>
+  </div>
+
+  <!-- NOTES -->
+  <div class="card">
+    <h2>📝 Notes</h2>
+    <input type="text" id="searchNote" placeholder="Search notes..." onkeyup="loadNotes()">
+    <input type="text" id="subject" placeholder="Subject">
+    <textarea id="noteContent" placeholder="Write your note..."></textarea>
+    <button onclick="addNote()">Add Note</button>
+    <ul id="noteList"></ul>
+  </div>
+
+</div>
+
+<script src="script.js"></script>
+
+</body>
+</html>
