@@ -16,7 +16,9 @@ async function signUp() {
   if (error) alert(error.message);
   else alert("Account created! Login now.");
 }
-
+function goToSignup() {
+  window.location.href = "signup.html";
+}
 async function login() {
   const email = document.getElementById("email").value.trim();
   const password = document.getElementById("password").value.trim();
