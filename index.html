@@ -8,45 +8,82 @@
 
 <body>
 
-<h1>📚 UBD Study Planner</h1>
+<!-- HEADER -->
+<div class="header">
+    <h1>UBD Study Planner</h1>
+  </div>
 
-<!-- 🔐 AUTH PAGE -->
+  <!-- Logout hidden by default -->
+  <button id="logoutBtn" onclick="logout()">Logout</button>
+</div>
+
+  <div class="logo-section">
+  <img src="studyplannerlogo.png" class="main-logo">
+</div>
+<!-- WELCOME -->
+<div class="welcome">
+  <h2>Welcome 👋</h2>
+  <p>
+    Welcome to your personal study planner. Manage your tasks, track deadlines,
+    and organise your notes all in one place.
+  </p>
+</div>
+
+<!-- LOGIN -->
 <div id="authSection" class="card">
   <h2>Login / Sign Up</h2>
   <input type="email" id="email" placeholder="Email">
   <input type="password" id="password" placeholder="Password">
-  
-  <button onclick="signUp()">Sign Up</button>
   <button onclick="login()">Login</button>
+  <button onclick="goToSignup()">Sign Up</button>
 </div>
 
-<!-- 🧩 MAIN APP (HIDDEN FIRST) -->
-<div id="appSection" class="container" style="display:none;">
-  <p id="userEmail"></p>
-<button onclick="logout()" style="margin-bottom:15px;">🚪 Logout</button>
+<!-- APP -->
+<div id="appSection" style="display:none;">
+
+  <!-- NAV -->
+  <div class="tabs">
+    <button onclick="showTab('dashboard')">Dashboard</button>
+    <button onclick="showTab('planner')">Planner</button>
+    <button onclick="showTab('notes')">Notes</button>
+  </div>
+
+  <!-- DASHBOARD -->
+  <div id="dashboardSection" class="container">
+    <div class="card">
+      <h2>📊 Dashboard</h2>
+      <p>Check your upcoming tasks in the Planner tab.</p>
+      <p id="taskSummary"></p>
+    </div>
+  </div>
 
   <!-- PLANNER -->
-  <div class="card">
-    <h2>📅 Planner</h2>
-    <input type="text" id="title" placeholder="Task title">
-    <input type="date" id="date">
-    <button onclick="addTask()">Add Task</button>
-    <ul id="taskList"></ul>
+  <div id="plannerSection" class="container" style="display:none;">
+    <div class="card">
+      <h2>📅 Planner</h2>
+      <input type="text" id="title" placeholder="Task title">
+      <input type="text" id="subjectTask" placeholder="Subject">
+      <input type="date" id="date">
+      <input type="text" id="filterSubject" placeholder="Filter by subject" onkeyup="loadTasks()">
+      <button onclick="addTask()">Add Task</button>
+      <ul id="taskList"></ul>
+    </div>
   </div>
 
   <!-- NOTES -->
-  <div class="card">
-    <h2>📝 Notes</h2>
-    <input type="text" id="searchNote" placeholder="Search notes..." onkeyup="loadNotes()">
-    <input type="text" id="subject" placeholder="Subject">
-    <textarea id="noteContent" placeholder="Write your note..."></textarea>
-    <button onclick="addNote()">Add Note</button>
-    <ul id="noteList"></ul>
+  <div id="notesSection" class="container" style="display:none;">
+    <div class="card">
+      <h2>📝 Notes</h2>
+      <input type="text" id="searchNote" placeholder="Search notes..." onkeyup="loadNotes()">
+      <input type="text" id="subject" placeholder="Subject">
+      <textarea id="noteContent"></textarea>
+      <button onclick="addNote()">Add Note</button>
+      <ul id="noteList"></ul>
+    </div>
   </div>
 
 </div>
 
 <script src="script.js"></script>
-
 </body>
 </html>
