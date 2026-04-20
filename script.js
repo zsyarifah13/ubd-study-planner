@@ -1,111 +1,151 @@
 const SUPABASE_URL = "https://gbcsgazcuhqpjebbltvu.supabase.co";
 const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdiY3NnYXpjdWhxcGplYmJsdHZ1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU0NzM3NDYsImV4cCI6MjA5MTA0OTc0Nn0.4uU4WQ-8CJ1ndm9TZaXetkPYBETycPF3d8K2jGLHKjI";
 
-const client = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+const { createClient } = supabase;
+const client = createClient(SUPABASE_URL, SUPABASE_KEY);
 
 // ================= AUTH =================
-  async function signUp() {
-  const email = document.getElementById("email").value;
-  const password = document.getElementById("password").value;
+async function signUp() {
+  const email = document.getElementById("email").value.trim();
+  const password = document.getElementById("password").value.trim();
 
-  const { data, error } = await client.auth.signUp({
-    email: email,
-    password: password
-  });
+  if (!email || !password) return alert("Enter email & password");
 
-  if (error) {
-    console.log(error);
-    alert(error.message);
-  } else {
-    alert("Sign up successful! Now login.");
-  }
+  const { error } = await client.auth.signUp({ email, password });
+
+  if (error) alert(error.message);
+  else alert("Account created! Login now.");
 }
 
 async function login() {
-  const email = document.getElementById("email").value;
-  const password = document.getElementById("password").value;
+  const email = document.getElementById("email").value.trim();
+  const password = document.getElementById("password").value.trim();
 
   const { error } = await client.auth.signInWithPassword({ email, password });
 
-  if (error) {
-    alert(error.message);
-  } else {
-    showApp();
-  }
+  if (error) alert(error.message);
+  else showApp();
 }
-async function logout() {
-  const { error } = await client.auth.signOut();
 
-  if (error) {
-    console.log(error);
-    alert("Logout failed");
+async function logout() {
+  await client.auth.signOut();
+  toggleUI(false);
+  document.getElementById("logoutBtn").style.display = "none";
+}
+
+// ================= UI CONTROL =================
+function toggleUI(isLoggedIn) {
+  document.getElementById("authSection").style.display = isLoggedIn ? "none" : "block";
+  document.getElementById("appSection").style.display = isLoggedIn ? "block" : "none";
+}
+
+// ================= SESSION =================
+client.auth.onAuthStateChange((event, session) => {
+  if (session) {
+    document.getElementById("logoutBtn").style.display = "block";
+    showApp();
   } else {
-    // Show login again
-    document.getElementById("authSection").style.display = "block";
-    document.getElementById("appSection").style.display = "none";
+    document.getElementById("logoutBtn").style.display = "none";
+    toggleUI(false);
   }
+});
+
+async function getUserId() {
+  const { data } = await client.auth.getUser();
+  return data.user.id;
 }
 
 async function showApp() {
   const { data } = await client.auth.getUser();
+  if (!data.user) return;
 
-  document.getElementById("userEmail").innerText =
-    "Logged in as: " + data.user.email;
-  document.getElementById("authSection").style.display = "none";
-  document.getElementById("appSection").style.display = "flex";
+  toggleUI(true);
+  document.getElementById("logoutBtn").style.display = "block";
 
+  loadDashboard();
   loadTasks();
   loadNotes();
 }
-// Auto login check
-client.auth.getSession().then(({ data }) => {
-  if (data.session) {
-    showApp();
-  }
-});
-// ================= TASK =================
+
+// ================= TABS =================
+function showTab(tab) {
+  ["dashboard", "planner", "notes"].forEach(t => {
+    document.getElementById(t + "Section").style.display = "none";
+  });
+  document.getElementById(tab + "Section").style.display = "block";
+}
+
+// ================= DASHBOARD =================
+async function loadDashboard() {
+  const userId = await getUserId();
+
+  const { data } = await client
+    .from("tasks")
+    .select("*")
+    .eq("user_id", userId);
+
+  const today = new Date();
+
+  const upcoming = data.filter(task => {
+    const due = new Date(task.due_date);
+    const diff = (due - today) / (1000 * 60 * 60 * 24);
+    return diff <= 2 && !task.completed;
+  });
+
+  document.getElementById("taskSummary").innerText =
+    "You have " + upcoming.length + " upcoming deadlines.";
+}
+
+// ================= TASKS =================
 async function addTask() {
+  const userId = await getUserId();
+
   const title = document.getElementById("title").value;
+  const subject = document.getElementById("subjectTask").value;
   const date = document.getElementById("date").value;
 
-  const { error } = await client.from("tasks").insert([
-    { title: title, due_date: date, completed: false }
+  await client.from("tasks").insert([
+    { title, subject, due_date: date, completed: false, user_id: userId }
   ]);
 
-  if (error) {
-    console.log(error);
-  } else {
-    loadTasks();
-  }
+  loadTasks();
+  loadDashboard();
 }
 
 async function loadTasks() {
-  const { data, error } = await client.from("tasks").select("*");
+  const userId = await getUserId();
 
-  if (error) {
-    console.log(error);
-    return;
-  }
+  const { data } = await client
+    .from("tasks")
+    .select("*")
+    .eq("user_id", userId);
 
   const list = document.getElementById("taskList");
   list.innerHTML = "";
 
   const today = new Date();
+  const filter = document.getElementById("filterSubject")
+    ? document.getElementById("filterSubject").value.toLowerCase()
+    : "";
 
   data.forEach(task => {
+
+    // 🔍 FILTER BY SUBJECT
+    if (filter && !task.subject.toLowerCase().includes(filter)) return;
+
+    const due = new Date(task.due_date);
+    const diff = (due - today) / (1000 * 60 * 60 * 24);
+    const urgent = diff <= 2;
+
     const li = document.createElement("li");
 
-    const dueDate = new Date(task.due_date);
-    const diffDays = (dueDate - today) / (1000 * 60 * 60 * 24);
-    const isUrgent = diffDays <= 2;
-
     li.innerHTML = `
-      <div class="task-card ${task.completed ? 'completed' : ''} ${isUrgent ? 'urgent' : ''}">
-        📌 ${task.title}<br>
+      <div class="task-card ${task.completed ? 'completed' : ''} ${urgent ? 'urgent' : ''}">
+        📌 ${task.title} (${task.subject})<br>
         📅 ${task.due_date}
         <br>
-        <button onclick="toggleComplete(${task.id}, ${task.completed})">
-          ${task.completed ? 'Undo' : 'Complete'}
+        <button onclick="toggleTask(${task.id}, ${task.completed})">
+          ${task.completed ? 'Undo' : 'Done'}
         </button>
         <button onclick="deleteTask(${task.id})">Delete</button>
       </div>
@@ -115,66 +155,60 @@ async function loadTasks() {
   });
 }
 
+async function toggleTask(id, status) {
+  await client.from("tasks").update({ completed: !status }).eq("id", id);
+  loadTasks();
+  loadDashboard();
+}
+
 async function deleteTask(id) {
   await client.from("tasks").delete().eq("id", id);
   loadTasks();
-}
-
-async function toggleComplete(id, currentStatus) {
-  await client.from("tasks")
-    .update({ completed: !currentStatus })
-    .eq("id", id);
-
-  loadTasks();
+  loadDashboard();
 }
 
 // ================= NOTES =================
 async function addNote() {
+  const userId = await getUserId();
+
   const subject = document.getElementById("subject").value;
   const content = document.getElementById("noteContent").value;
 
-  const xmlContent = `<note><subject>${subject}</subject><content>${content}</content></note>`;
+  const xml = `<note><subject>${subject}</subject><content>${content}</content></note>`;
 
-  const { error } = await client.from("notes").insert([
-    { subject: subject, content: xmlContent }
+  await client.from("notes").insert([
+    { subject, content: xml, user_id: userId }
   ]);
 
-  if (error) {
-    console.log(error);
-  } else {
-    loadNotes();
-  }
+  loadNotes();
 }
 
 async function loadNotes() {
-  const { data, error } = await client.from("notes").select("*");
+  const userId = await getUserId();
 
-  if (error) {
-    console.log(error);
-    return;
-  }
+  const { data } = await client
+    .from("notes")
+    .select("*")
+    .eq("user_id", userId);
 
   const list = document.getElementById("noteList");
   list.innerHTML = "";
 
-  const searchInput = document.getElementById("searchNote");
-  const search = searchInput ? searchInput.value.toLowerCase() : "";
+  const search = document.getElementById("searchNote")
+    ? document.getElementById("searchNote").value.toLowerCase()
+    : "";
 
   data.forEach(note => {
-    const parser = new DOMParser();
-    const xml = parser.parseFromString(note.content, "text/xml");
-
+    const xml = new DOMParser().parseFromString(note.content, "text/xml");
     const subject = xml.getElementsByTagName("subject")[0].textContent;
     const content = xml.getElementsByTagName("content")[0].textContent;
 
-    // 🔍 Search filter
+    // 🔍 SEARCH FILTER
     if (
       search &&
       !subject.toLowerCase().includes(search) &&
       !content.toLowerCase().includes(search)
-    ) {
-      return;
-    }
+    ) return;
 
     const li = document.createElement("li");
 
@@ -182,21 +216,16 @@ async function loadNotes() {
       <div class="note-card">
         📘 ${subject}<br>
         📝 ${content}
+        <br>
+        <button onclick="deleteNote(${note.id})">Delete</button>
       </div>
     `;
 
     list.appendChild(li);
   });
 }
-// Check login session on load
-client.auth.getSession().then(({ data }) => {
-  if (data.session) {
-    showApp();
-  } else {
-    document.getElementById("authSection").style.display = "block";
-    document.getElementById("appSection").style.display = "none";
-  }
-});
-// ================= INIT =================
-loadTasks();
-loadNotes();
+
+async function deleteNote(id) {
+  await client.from("notes").delete().eq("id", id);
+  loadNotes();
+}
