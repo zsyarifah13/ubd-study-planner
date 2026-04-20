@@ -4,16 +4,20 @@ const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZ
 const client = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
 // ================= AUTH =================
-async function signUp() {
+  async function signUp() {
   const email = document.getElementById("email").value;
   const password = document.getElementById("password").value;
 
-  const { error } = await client.auth.signUp({ email, password });
+  const { data, error } = await client.auth.signUp({
+    email: email,
+    password: password
+  });
 
   if (error) {
+    console.log(error);
     alert(error.message);
   } else {
-    alert("Sign up successful! You can now login.");
+    alert("Sign up successful! Now login.");
   }
 }
 
@@ -29,8 +33,24 @@ async function login() {
     showApp();
   }
 }
+async function logout() {
+  const { error } = await client.auth.signOut();
 
-function showApp() {
+  if (error) {
+    console.log(error);
+    alert("Logout failed");
+  } else {
+    // Show login again
+    document.getElementById("authSection").style.display = "block";
+    document.getElementById("appSection").style.display = "none";
+  }
+}
+
+async function showApp() {
+  const { data } = await client.auth.getUser();
+
+  document.getElementById("userEmail").innerText =
+    "Logged in as: " + data.user.email;
   document.getElementById("authSection").style.display = "none";
   document.getElementById("appSection").style.display = "flex";
 
@@ -168,7 +188,15 @@ async function loadNotes() {
     list.appendChild(li);
   });
 }
-
+// Check login session on load
+client.auth.getSession().then(({ data }) => {
+  if (data.session) {
+    showApp();
+  } else {
+    document.getElementById("authSection").style.display = "block";
+    document.getElementById("appSection").style.display = "none";
+  }
+});
 // ================= INIT =================
 loadTasks();
 loadNotes();
